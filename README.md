@@ -1,6 +1,6 @@
 ## too short didn't write
 
-# main sources
+### main sources
 - primeagen
 - hendrikmi
 - josean-dev
@@ -8,5 +8,5 @@
 - BreadOnPenguins
 and any other official plugins related. They are wonderfull.
 
-# prerequisite
+### prerequisite
 `sudo pacman -S nodejs-lts-jod npm unzip ripgrep`
