@@ -1,100 +1,93 @@
 return {
 	"neovim/nvim-lspconfig",
 	dependencies = {
-		-- mason
+		-- LSP tools
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
-		-- cmp
-		"hrsh7th/cmp-nvim-lsp",
+		-- Autocompletion
 		"hrsh7th/cmp-buffer",
-		"hrsh7th/cmp-path",
 		"hrsh7th/cmp-cmdline",
+		"hrsh7th/cmp-nvim-lsp",
+		"hrsh7th/cmp-path",
 		"hrsh7th/nvim-cmp",
-		-- formatter
-		"stevearc/conform.nvim",
-		-- snippets
+		-- Snippets
 		"L3MON4D3/LuaSnip",
 		"saadparwaiz1/cmp_luasnip",
-		-- notif
+		-- Formatting
+		"stevearc/conform.nvim",
+		-- Notifications
 		"j-hui/fidget.nvim",
 	},
 	config = function()
+		-- Formatter
+		require("conform").setup({
+			formatters_by_ft = {},
+		})
+
+		-- LSP progress UI
+		require("fidget").setup({})
+
+		-- LSP keymaps
 		vim.api.nvim_create_autocmd("LspAttach", {
 			group = vim.api.nvim_create_augroup("user_lsp_attach", { clear = true }),
 			callback = function(event)
 				local opts = { buffer = event.buf }
 
-				vim.keymap.set("n", "gd", function()
-					vim.lsp.buf.definition()
-				end, opts)
-				vim.keymap.set("n", "K", function()
-					vim.lsp.buf.hover()
-				end, opts)
-				vim.keymap.set("n", "<leader>vws", function()
-					vim.lsp.buf.workspace_symbol()
-				end, opts)
-				vim.keymap.set("n", "<leader>vd", function()
-					vim.diagnostic.open_float()
-				end, opts)
-				vim.keymap.set("n", "[d", function()
-					vim.diagnostic.goto_next()
-				end, opts)
-				vim.keymap.set("n", "]d", function()
-					vim.diagnostic.goto_prev()
-				end, opts)
-				vim.keymap.set("n", "<leader>vca", function()
-					vim.lsp.buf.code_action()
-				end, opts)
-				vim.keymap.set("n", "<leader>vrr", function()
-					vim.lsp.buf.references()
-				end, opts)
-				vim.keymap.set("n", "<leader>vrn", function()
-					vim.lsp.buf.rename()
-				end, opts)
-				vim.keymap.set("i", "<C-h>", function()
-					vim.lsp.buf.signature_help()
-				end, opts)
+				vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+				vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+				vim.keymap.set("n", "<leader>vws", vim.lsp.buf.workspace_symbol, opts)
+				vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, opts)
+				vim.keymap.set("n", "[d", vim.diagnostic.goto_next, opts)
+				vim.keymap.set("n", "]d", vim.diagnostic.goto_prev, opts)
+				vim.keymap.set("n", "<leader>vca", vim.lsp.buf.code_action, opts)
+				vim.keymap.set("n", "<leader>vrr", vim.lsp.buf.references, opts)
+				vim.keymap.set("n", "<leader>vrn", vim.lsp.buf.rename, opts)
+				vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts)
 			end,
 		})
 
+		-- Capabilities
 		local capabilities = vim.lsp.protocol.make_client_capabilities()
 		capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 
+		-- LSP Servers
 		local servers = {
 			biome = {},
-			cssls = {},
-			emmet_language_server = { filetypes = { "css", "html" } },
-			-- gopls = {},
+			cssls = { filetypes = { "css" } },
+			emmet_language_server = {
+				filetypes = { "css", "html", "javascript", "javascriptreact", "typescriptreact" },
+			},
 			html = { filetypes = { "html", "hbs" } },
-			tailwindcss = {},
-			ts_ls = {}, -- tsserver is deprecated
+			gopls = {},
+      marksman = { filetypes = { "markdown" } },
+			tailwindcss = {
+				filetypes = { "css", "html", "javascript", "javascriptreact", "typescript", "typescriptreact" },
+			},
+			ts_ls = {},
 			lua_ls = {
 				settings = {
 					Lua = {
-						runtime = {
-							version = "LuaJIT",
-						},
-						diagnostics = {
-							globals = { "vim" },
-						},
+						runtime = { version = "LuaJIT" },
+						diagnostics = { globals = { "vim" } },
 						workspace = {
-							library = {
-								vim.env.VIMRUNTIME,
-							},
+							library = vim.api.nvim_get_runtime_file("", true),
+							checkThirdParty = false,
 						},
 					},
 				},
 			},
 		}
+
 		require("mason").setup({})
 
 		local ensure_installed = vim.tbl_keys(servers or {})
 		vim.list_extend(ensure_installed, {
-			"stylua", -- Used to format Lua code
+			"stylua", -- Lua formatter
 		})
 
 		require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
+
 		require("mason-lspconfig").setup({
 			handlers = {
 				function(server_name)
@@ -104,11 +97,8 @@ return {
 				end,
 			},
 		})
-		require("fidget").setup({})
-		require("conform").setup({
-			formatters_by_ft = {},
-		})
 
+		-- nvim-cmp setup
 		local cmp = require("cmp")
 		local cmp_select = { behavior = cmp.SelectBehavior.Select }
 
@@ -131,26 +121,21 @@ return {
 				{ name = "buffer" },
 			}),
 			formatting = {
-				-- changing the order of fields so the icon is the first
 				fields = { "menu", "abbr", "kind" },
-
-				-- here is where the change happens
 				format = function(entry, item)
 					local menu_icon = {
 						nvim_lsp = "λ",
 						luasnip = "⋗",
 						buffer = "Ω",
 						path = "🖫",
-						nvim_lua = "Π",
 					}
-
 					item.menu = menu_icon[entry.source.name]
 					return item
 				end,
 			},
 		})
 
-		-- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
+		-- Cmdline completion
 		cmp.setup.cmdline({ "/", "?" }, {
 			mapping = cmp.mapping.preset.cmdline(),
 			sources = {
@@ -158,7 +143,6 @@ return {
 			},
 		})
 
-		-- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
 		cmp.setup.cmdline(":", {
 			mapping = cmp.mapping.preset.cmdline(),
 			sources = cmp.config.sources({
@@ -169,8 +153,9 @@ return {
 			matching = { disallow_symbol_nonprefix_matching = false },
 		})
 
+		-- Diagnostics UI
 		vim.diagnostic.config({
-			-- virtual_text = true,
+			virtual_text = true,
 			severity_sort = true,
 			float = {
 				style = "minimal",

@@ -33,8 +33,9 @@ opt.relativenumber = true
 o.numberwidth = 2
 o.ruler = false
 
+opt.colorcolumn = "80"
+opt.signcolumn = "yes"
 opt.scrolloff = 7
-o.signcolumn = "yes"
 o.splitbelow = true
 o.splitright = true
 o.timeoutlen = 400
